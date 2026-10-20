@@ -1,0 +1,7 @@
+__pycache__/
+.venv/
+data/raw/
+data/corpus.sqlite
+data/stylesheets/
+runs/
+data/pages/
