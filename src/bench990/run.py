@@ -2,7 +2,6 @@
 
     python -m bench990.run generate --out data/assignments.jsonl
     python -m bench990.run run --model ollama/kimi-k3 --assignments data/assignments.jsonl --out runs/proto
-    python -m bench990.run grade runs/proto
 """
 
 from __future__ import annotations

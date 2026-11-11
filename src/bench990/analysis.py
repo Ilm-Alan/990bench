@@ -1,17 +1,17 @@
-"""Aggregate study runs: pass rates with Wilson intervals, value accuracy with bootstrap intervals,
-cost per correct deliverable, and a failure taxonomy read from the graded answers.
+"""Aggregate study runs: pass rates with Wilson intervals, value accuracy over finished runs,
+prompt tokens per correct deliverable, and a failure taxonomy read from the graded answers.
 
-    python -m bench990.analysis            # writes docs/study-results.md and docs/study-*.png
+Reads the run plan and assignments from data/study/ and one result.json per run from runs/study/.
+
+    python -m bench990.analysis            # writes docs/study-results.md and docs/study-pass-rate.png
 """
 
 from __future__ import annotations
 
 import json
 import math
-import random
 import re
 from collections import Counter, defaultdict
-from pathlib import Path
 
 from . import assignments as A
 from .corpus import ROOT
@@ -22,20 +22,13 @@ FIELDS = ("ein", "period_end", "total_revenue", "program_share", "top_comp", "in
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Wilson score interval for k successes in n trials (95% by default)."""
     if n == 0:
         return (0.0, 0.0)
     p = k / n
     centre = (p + z * z / (2 * n)) / (1 + z * z / n)
     half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
     return (max(0.0, centre - half), min(1.0, centre + half))
-
-
-def bootstrap(values: list[float], reps: int = 2000, seed: int = 0) -> tuple[float, float]:
-    if not values:
-        return (0.0, 0.0)
-    rng = random.Random(seed)
-    means = sorted(sum(rng.choice(values) for _ in values) / len(values) for _ in range(reps))
-    return (means[int(0.025 * reps)], means[int(0.975 * reps) - 1])
 
 
 def _digits(v: object) -> str:
@@ -183,9 +176,12 @@ def chart(rows: list[dict[str, object]]) -> None:
 
 def main() -> None:
     rows = load()
-    (DOCS / "study-results.md").write_text(summarize(rows))
+    if not rows:
+        raise SystemExit(f"no finished runs under {RUNS.relative_to(ROOT)}/; docs left unchanged")
+    text = summarize(rows)
+    (DOCS / "study-results.md").write_text(text)
     chart(rows)
-    print(summarize(rows))
+    print(text)
 
 
 if __name__ == "__main__":

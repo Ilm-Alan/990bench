@@ -1,6 +1,6 @@
 # Prior art: LLM/agent benchmarks over IRS Form 990 data
 
-Research date: 2026-10-19. Every claim has a URL. `[UNVERIFIED]` marks claims I could not confirm from a primary source. `[INFERENCE]` marks my own reasoning.
+Research date: 2026-10-19. Every claim has a URL. `[UNVERIFIED]` marks claims I could not confirm from a primary source. `[INFERENCE]` marks my own reasoning. The survey was written before the harness was built; the Verdict says which of its ideas 990bench uses.
 
 Search coverage: arXiv (API and web), ACL Anthology, the Hugging Face Hub API (models, datasets, and spaces searched for `irs990`, `irs-990`, `form990`, `form 990`, `990-pf`, `nonprofit`, `givingtuesday`, `nccs`, `propublica`, `open990`, `donut-irs`), GitHub (`gh search repos` with 22 query strings plus code search), Kaggle, web search, and IRS, ProPublica, NCCS, GivingTuesday, and Candid primary pages.
 
@@ -21,14 +21,14 @@ Search coverage: arXiv (API and web), ACL Anthology, the Hugging Face Hub API (m
   - `bq403` / `sf_bq403`: *"Which three years in 2012-2017 have the smallest absolute difference between median revenue and median functional expenses for organizations filing IRS 990 forms?"*
 
   The underlying data is the BigQuery/Kaggle "IRS 990" dataset. That dataset is built from the IRS SOI-style extract tables (`irs_990_2012`, `irs_990_ez_2014`, and so on), not the full e-file XML ([Kaggle page](https://www.kaggle.com/datasets/irs/irs-990)).
-- **Overlap with our plan:** It confirms that 990 data has appeared in an LLM evaluation, but only as one SQL aggregate question over summary tables.
+- **Overlap:** It confirms that 990 data has appeared in an LLM evaluation, but only as one SQL aggregate question over summary tables.
 - **Difference:** There are no schedules, no Schedule I grant chains, no multi-year per-organization lookups, no abstention, and no documents.
 
 ### 1.2 `MyroProductoCodo/donut-irs990` (Hugging Face model)
 - **URL:** https://huggingface.co/MyroProductoCodo/donut-irs990
 - **Date:** Created 2026-03-02 (Hub API).
 - **Description:** A Donut model (`naver-clova-ix/donut-base`) fine-tuned to read Form 990 page images and output 1,075 tagged fields. It was trained on a synthetic dataset of 990 images. The model card calls it the author's first fine-tune and an "early checkpoint" with a known tokenizer bug (some field tokens come out as `<unk>`). The card reports no evaluation numbers, and I found no published training dataset `[INFERENCE]`.
-- **Overlap:** Same goal as our secondary track (990 image → field values).
+- **Overlap:** Reading 990 page images into field values.
 - **Difference:** Synthetic training images, no benchmark, no real e-filed renders, no scoring against XML.
 
 ### 1.3 FieldBench (document-extraction benchmark)
@@ -76,7 +76,7 @@ Search coverage: arXiv (API and web), ACL Anthology, the Hugging Face Hub API (m
   - CauseWriter "Nonprofit 990 AI Analyzer" (a custom GPT): https://causewriter.ai/resources/990-analyzer
 
   None of these ships an evaluation set or accuracy numbers (I checked the READMEs of the GitHub items).
-- **Overlap:** These are essentially candidate tool environments for our agent track. The DataDawn tool set closely matches the tools we would give an agent.
+- **Overlap:** These are candidate tool environments for an agent benchmark. The DataDawn tool set is close to what an agent needs for 990 questions.
 - **Difference:** No ground-truth questions, no scoring.
 
 ### 1.6 Parsed 990 corpora on Hugging Face (data only, no questions)
@@ -92,7 +92,7 @@ Search coverage: arXiv (API and web), ACL Anthology, the Hugging Face Hub API (m
   - `CommunityOne/one-nonprofits-*` (2026-05-02);
   - `zalizedata/...-restricted` (commercial, gated).
 - GitHub: https://github.com/FraudHawker/nonprofit-filings (2026-06-01) — 990s cross-linked by EIN with FEC, DOL, FAC, lobbying, and state registries.
-- **Overlap:** Ready-made relational 990 databases. Useful for cross-checking our own parser.
+- **Overlap:** Ready-made relational 990 databases. Useful for cross-checking a parser.
 - **Difference / implication:** No questions. Because these are public, parsed values are easy to retrieve and may already be in pretraining data `[INFERENCE]`.
 
 ### 1.7 Kaggle / BigQuery "IRS 990" dataset
@@ -109,20 +109,20 @@ Search coverage: arXiv (API and web), ACL Anthology, the Hugging Face Hub API (m
 - **Mapping Philanthropic Support of Science** — Shekhtman, Gates, Barabási, arXiv 2206.10661, 2022-06-09: https://arxiv.org/abs/2206.10661
   - Built a bipartite funder→recipient network from tax forms of 685,397 nonprofits; about 1M science and higher-education grants.
   - Findings: grant relationships persist over time, and the network predicts future funder–recipient links.
-  - **Overlap:** The grant-network structure we would query.
+  - **Overlap:** The grant-network structure that follow-the-money questions traverse.
   - **Difference:** Network science, not LLMs.
 - **LLM-aided extraction for a local nonprofit** (arXiv 2511.18483) and **LLMs in nonprofit program evaluation** (arXiv 2510.19799) are unrelated to 990 filings (titles from the arXiv API results).
 
-### 1.9 Other near misses named in the assignment
+### 1.9 Other near misses
 - **ProPublica Nonprofit Explorer** — https://projects.propublica.org/nonprofits/ and the API at https://projects.propublica.org/nonprofits/api
   - Organization/filing JSON (summary financials from the SOI extract).
   - HTML full-text renders of e-filed XML, with the viewer adapted from https://github.com/betson/irs-efile-viewer.
   - PDF links.
   - Full-text search of filings.
   - Not a benchmark. Terms in §3.2.
-- **IRSx (990-xml-reader)** — https://github.com/jsfenfen/990-xml-reader (2017; still maintained, last push 2026-09-22). Details in §3.4.
-- **Nonprofit Open Data Collective concordance** — https://github.com/Nonprofit-Open-Data-Collective/irs-efile-master-concordance-file. Details in §3.4.
-- **NCCS efile database** — https://urbaninstitute.github.io/nccs/datasets/efile/. Details in §3.4.
+- **IRSx (990-xml-reader)** — https://github.com/jsfenfen/990-xml-reader (2017; still maintained, last push 2026-09-22). Details in §3.3.
+- **Nonprofit Open Data Collective concordance** — https://github.com/Nonprofit-Open-Data-Collective/irs-efile-master-concordance-file. Details in §3.3.
+- **NCCS efile database** — https://urbaninstitute.github.io/nccs/datasets/efile/. Details in §3.3.
 - **Open990** — https://www.open990.com/ (by 990 Consulting; tools at https://github.com/990consulting/open990odl). GuideStar says Open990.org Inc "has not appeared on the IRS Business Master File in a number of months" (https://www.guidestar.org/profile/84-1842054). Possibly defunct `[UNVERIFIED]`.
 - **CitizenAudit** — https://www.citizenaudit.org/. A commercial search engine over "2.5 Million Nonprofits, 30 Million Documents, 4+ Billion Pages" with grant search. Not a benchmark.
 - **Charity Navigator 990 toolkit** — https://github.com/CharityNavigator/irs990 and http://990.charitynavigator.org/ (ETL).
@@ -138,7 +138,7 @@ Search coverage: arXiv (API and web), ACL Anthology, the Hugging Face Hub API (m
 | **FinanceBench** | https://arxiv.org/abs/2311.11944 (2023-11-20) | Open-book question answering on public-company filings | Human-written questions with answers and **evidence strings**; model answers manually reviewed (n=2,400) | 10,231 questions; 150 open-sourced | No (RAG / long-context). Notes that GPT-4-Turbo with retrieval answered incorrectly or refused 81% of the time. |
 | **TAT-QA** | https://arxiv.org/abs/2105.07624 (2021-05-17) | Hybrid table + text question answering from real financial reports, with numerical reasoning | **Human annotators** with financial backgrounds (paper §3) | 16,552 questions, 2,757 contexts, 182 reports | No |
 | **DocFinQA** | https://arxiv.org/abs/2401.06915 (2024-01-12) | Long-document version of FinQA: full filing as context (average 123k words) | Inherited from FinQA (human-annotated) | 7,437 questions | No (long context / RAG) |
-| **SEC-QA** | https://arxiv.org/abs/2406.14394 (2024-06-20) | Multi-document financial question answering over 10-K, 10-Q, and 8-K filings (18 S&P 500 companies, 2010–2023, 10 metrics) | **Semi-automatic / computed.** Templates filled from a key-value-document table T(company, year, metric, value, document). "Generated automatically from an existing financial database without any involvement of human annotators" (§Limitations of the PDF). Refreshable with new filings. | "Flexible" (generated on demand) | Partly. Their best system is program-of-thought with `select_document`, `retrieve_relevant_pages`, and `extract_value` tool functions. **This is the closest methodological analog to our plan.** |
+| **SEC-QA** | https://arxiv.org/abs/2406.14394 (2024-06-20) | Multi-document financial question answering over 10-K, 10-Q, and 8-K filings (18 S&P 500 companies, 2010–2023, 10 metrics) | **Semi-automatic / computed.** Templates filled from a key-value-document table T(company, year, metric, value, document). "Generated automatically from an existing financial database without any involvement of human annotators" (§Limitations of the PDF). Refreshable with new filings. | "Flexible" (generated on demand) | Partly. Their best system is program-of-thought with `select_document`, `retrieve_relevant_pages`, and `extract_value` tool functions. **This is the closest methodological analog to 990bench.** |
 | **τ-bench** | https://arxiv.org/abs/2406.12045 (2024-06-17) | Tool-agent-user conversations (retail, airline) with domain policies | Annotated goal database state; scoring compares the final database state | Retail + airline task sets | **Yes.** Introduces **pass^k** reliability (gpt-4o pass^8 <25% in retail). |
 | **LiveBench** | https://arxiv.org/abs/2406.19314 (2024-06-27) | Contamination-limited general benchmark built from recent sources | **Objective ground truth**, automatic scoring, no LLM judge | Monthly updates; questions released over time | No |
 | **Spider 2.0** | https://arxiv.org/abs/2411.07763 (2024-11-12) | Enterprise text-to-SQL over large real schemas (more than 1,000 columns); includes the IRS 990 database (§1.1) | Gold SQL / execution results | 632 tasks (547 in -lite / -snow) | Yes (code agent) |
@@ -150,7 +150,7 @@ Other related items, mentioned for completeness:
 - The Stanford EDGAR Filings Dataset (https://arxiv.org/abs/2606.18192, 2026-06) converts SEC filings into pretraining data. This shows that regulatory filings are being put into training corpora on purpose, which is a contamination signal for any static filings benchmark `[INFERENCE]`.
 - Mint-Agent (https://arxiv.org/html/2608.16386v2) builds agentic finance tasks "from primary financial materials" aligned to EDGAR structured values (seen in snippet only; `[UNVERIFIED]` details).
 
-**How these differ from our plan:**
+**How these differ from 990bench:**
 - All of the filing-based agent and QA benchmarks use **SEC/EDGAR corporate filings**.
 - Only SEC-QA and TaxCalcBench compute labels from structured data. FAB, FinanceBench, and TAT-QA are human-labeled.
 - None covers nonprofit filings, entity-to-entity grant graphs, or a monthly government XML feed.
@@ -165,7 +165,7 @@ Other related items, mentioned for completeness:
 - **Licensing caveat:** The filing *content* is written by the filers, not by federal employees. So "public domain" is the community's working assumption, not an explicit IRS license.
   - The old AWS Registry entry lists **"License: None"** (https://registry.opendata.aws/irs990/).
   - Downstream redistributors label their derived data CC0: mauricedalton, piercewetter3, healthparse on Hugging Face; DataDawn on GitHub.
-  - `[INFERENCE]` Redistribution is low-risk: the content is statutorily public, the IRS states no restrictions, and there is widespread CC0 redistribution. **Not legal advice.** Avoid IRS seals and branding in our benchmark.
+  - `[INFERENCE]` Redistribution is low-risk: the content is statutorily public, the IRS states no restrictions, and there is widespread CC0 redistribution. **Not legal advice.** Avoid IRS seals and branding in a benchmark.
 - **Bulk XML access, current state:** https://www.irs.gov/charities-non-profits/form-990-series-downloads
   - Monthly ZIPs, e.g. `https://apps.irs.gov/pub/epostcard/990/xml/2026/2026_TEOS_XML_01A.zip`, from 2019 onward, plus a yearly index CSV.
   - The TEOS bulk page says "Latest data posting XML: August 20, 2026" (https://www.irs.gov/charities-non-profits/tax-exempt-organization-search-bulk-data-downloads). Data sets "are updated monthly."
@@ -196,17 +196,17 @@ Other related items, mentioned for completeness:
   - **Today**, the downloads page says "XML formats" only. The per-year PDF pages return **404**, and that sample PDF ZIP **redirects to irs.gov/404** (checked 2026-10-19).
   - The exact removal date is `[UNVERIFIED]`. The Wayback CDX shows the 2023 PDF page last archived 2025-11-10.
   - ProPublica's API docs still say "Bulk PDF downloads since 2017 are available from the IRS" (https://projects.propublica.org/nonprofits/api). That statement looks out of date `[INFERENCE]`.
-- **Official IRS rendering stylesheets (a key enabler for the extraction track).** MeF stylesheets (XSL/CSS) "can be used by external stakeholders to display ... exempt organizations ... returns" and are published per tax year from 2008 to TY2026 (https://www.irs.gov/e-file-providers/modernized-e-file-mef-stylesheets).
+- **Official IRS rendering stylesheets (what makes page-image rendering possible).** MeF stylesheets (XSL/CSS) "can be used by external stakeholders to display ... exempt organizations ... returns" and are published per tax year from 2008 to TY2026 (https://www.irs.gov/e-file-providers/modernized-e-file-mef-stylesheets).
   - The page notes a TY2022 Form 990 stylesheet header fix and says it did not affect "the accuracy of Forms 990 images that appear on Tax Exempt Organization Search".
   - That wording, together with the "efile GRAPHIC print" header, strongly suggests TEOS images are produced from the XML with these stylesheets `[INFERENCE]`.
-  - We could render any XML → HTML → PDF/PNG ourselves with the official stylesheets. That gives unlimited, fresh, exactly aligned image/ground-truth pairs.
+  - Any XML can therefore be rendered to HTML, PDF and PNG with the official stylesheets, which gives unlimited, fresh, exactly aligned image/ground-truth pairs. `render.py` does this; see [rendering.md](rendering.md).
 - **ProPublica Nonprofit Explorer PDFs and renders** (https://projects.propublica.org/nonprofits/api):
   - `pdf_url` links to scanned or original 990 PDFs ("rate limited").
   - Pre-2017 documents were obtained via Public.Resource.org.
   - E-filed returns also get HTML renders, e.g. https://projects.propublica.org/nonprofits/organizations/810861541/202513219349328476/IRS990
   - Organization pages note "Duplicate download links may indicate a resubmission or amendment" (http://projects.propublica.org/nonprofits/organizations/810861541).
   - **Terms:** API use "constitutes agreement" to ProPublica's Data Terms of Use (https://www.propublica.org/about/propublica-data-terms-of-use → https://projects.propublica.org/datastore/terms/). Those terms say: you can't republish the raw data in its entirety or distribute it stand-alone; can't change it except to correct it; can't sublicense or resell it; must cite ProPublica; accuracy not guaranteed.
-  - **Implication:** Source PDFs and XML from the IRS, not ProPublica, if we plan to redistribute `[INFERENCE]`.
+  - **Implication:** Source PDFs and XML from the IRS, not ProPublica, for anything that is redistributed `[INFERENCE]`.
   - History: in 2014 PDFs were temporarily removed over unredacted SSNs (API changelog, same URL). This is a PII caution for scanned or paper returns.
 
 ### 3.3 Known XML pitfalls and data-quality issues
@@ -236,7 +236,7 @@ Other related items, mentioned for completeness:
   - Common patterns: partial grant lists that point to attachments, and single "grants" to recipients named "See attachment", "Schedule available", or "See Line 3A statement".
   - Part VII trustee/staff compensation attachments are missing, and Part I totals disagree with the compensation detail.
   - **990-PF does not require grantee EINs** (Part XIV 3a/3b), while Schedule I on Form 990 does. That makes private-foundation grant chains much harder to resolve by EIN.
-- **Duplicates and amendments.** Multiple filings can exist per EIN per tax period because of resubmissions or amendments (ProPublica note above). Our answer-computing code needs a deterministic "which return counts" rule, e.g. latest amended `[INFERENCE]`.
+- **Duplicates and amendments.** Multiple filings can exist per EIN per tax period because of resubmissions or amendments (ProPublica note above). Answer-computing code needs a deterministic "which return counts" rule. 990bench only asks about organizations with a single original return for the tax year and no amended return on file.
 - **Redaction.** Some sensitive information, notably Schedule B donor identities, is redacted (NCCS efile page linking https://www.adlercolvin.com/blog/2015/06/08/exempt-organizations-can-redact-donor-identifying-information-from-irs-form-990-schedule-b-before-public-disclosure/).
 - **Release delays.** In 2020–2023, release delays lasted "almost three years". NODC also asked the IRS to restore a lightweight index, since users otherwise must download more than 1 TB to find updated returns (comment letter above).
 - **Free-text quality.** GivingTuesday says filings "often contain errors" in free-text fields (https://ai.givingtuesday.org/tools, "990 Accessibility Enhancer" blurb).
@@ -258,6 +258,8 @@ Other related items, mentioned for completeness:
 
 ## Verdict
 
+**What 990bench uses.** From the ideas below: answers computed by code from the XML, exact-match grading with no LLM judge, a `submit` tool, tool-call and token counts per run, repeated runs per setting, explicit return-selection rules, and data sourced only from the IRS. It has no abstention tier, private split, monthly refresh or cross-version schema mapping; those items are ideas, not features.
+
 **Novelty.** As far as I searched (arXiv, ACL Anthology, HF Hub API, GitHub, Kaggle, web), **a tool-using agent benchmark over IRS 990 e-file data is novel.** Specifically, nothing combines:
 - code-computed answers from the XML;
 - multi-year per-organization comparisons;
@@ -265,17 +267,17 @@ Other related items, mentioned for completeness:
 - cross-organization rankings;
 - unanswerable questions requiring abstention.
 
-The extraction track is also effectively unclaimed. The only 990-specific extraction artifact is an early, unevaluated Donut checkpoint trained on synthetic images, and FieldBench's IRS category covers only W-2 and 1099-NEC.
+Extraction from 990 page images is also effectively unclaimed. The only 990-specific extraction artifact is an early, unevaluated Donut checkpoint trained on synthetic images, and FieldBench's IRS category covers only W-2 and 1099-NEC.
 
 **Closest items (ranked):**
 1. **SEC-QA:** the same idea (computed answers from a structured database with document provenance, refreshable) applied to SEC filings.
 2. **Vals Finance Agent Benchmark:** the same agentic harness concept over EDGAR, but with human-written questions and an LLM judge.
 3. **Spider 2.0 `bq403`:** the only existing LLM evaluation item over 990 data (one SQL question on SOI summary tables).
-4. **DataDawn MCP / ProPublica MCP servers:** effectively our tool environment, without tasks.
-5. **`donut-irs990` and FieldBench:** extraction-track precedents.
+4. **DataDawn MCP / ProPublica MCP servers:** a comparable tool environment, without tasks.
+5. **`donut-irs990` and FieldBench:** extraction precedents.
 6. **DABstep, TaxCalcBench, LiveBench, τ-bench, AbstentionBench:** methodology.
 
-**Ideas to borrow:**
+**Design ideas from the survey:**
 - **Computed labels plus templates plus provenance (SEC-QA).**
   - Generate questions from a value table T(EIN, tax_period, field, value, object_id).
   - Use SEC-QA's complexity axes: parallel reference (multi-year), multi-hop (grant chain), structural reference (named Part or Schedule), multi-output.
@@ -295,9 +297,9 @@ The extraction track is also effectively unclaimed. The only 990-specific extrac
 - **Abstention tier (AbstentionBench, FinanceBench refusals).**
   - Draw unanswerable questions from known data gaps: tax year not yet released; 990-EZ filers asked for full-990-only fields; Schedule B redactions; Candid-style missing grant lists or "See attachment" recipients; 990-PF grantees with no EIN.
   - Make sure the ground truth is "not determinable from the filings", not zero.
-- **Extraction-track scoring (FieldBench).**
+- **Extraction scoring (FieldBench).**
   - Use the four-way null breakdown (match / miss / hallucination / correct-absence).
-  - Stratify results by real TEOS images vs. our own MeF-stylesheet renders.
+  - Stratify results by real TEOS images vs. MeF-stylesheet renders.
   - Pair TEOS image-only PDFs with the XML via DLN or object ID.
   - Use the official IRS MeF stylesheets to render fresh, perfectly aligned documents.
 - **Schema handling.**
@@ -310,4 +312,4 @@ The extraction track is also effectively unclaimed. The only 990-specific extrac
   - Source everything from IRS endpoints.
   - Do not redistribute ProPublica API data (their terms forbid stand-alone redistribution).
   - Credit the IRS and avoid IRS seals.
-  - Attribute NODC if we ship concordance-derived mappings.
+  - Attribute NODC if concordance-derived mappings are shipped.

@@ -10,7 +10,7 @@ import base64
 import json
 import os
 import time
-from typing import Callable
+from collections.abc import Callable
 
 import httpx
 

@@ -61,8 +61,9 @@ excluded from ground truth; Part I and Part VIII revenue totals disagree on abou
 8,000 (spike sample); the IRS index labels both halves of split batches with one zip name and
 three zips use Deflate64 (both documented for agents).
 
-## Conclusion to date
+## What these rounds showed
 
 Retrieval-and-transcription assignments, even long ones with traps over page images, are within
 reach of a cheap current model. Length raises cost (2.6M prompt tokens for one assignment) more
-than failure rate. Harder assignments need a different source of difficulty.
+than failure rate. Each result above is a single run, which says nothing about reliability; the
+[study](report.md) measured that next, with four runs per setting.

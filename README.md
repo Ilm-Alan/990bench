@@ -1,11 +1,14 @@
 # 990bench
 
-Can AI agents do nonprofit due diligence from IRS filings? A research log: an agent harness over
-1.85 million real Form 990-series returns, ground truth computed by code and checked
-independently, a small reliability study, and what held up and what did not.
+Can AI agents do nonprofit due diligence from IRS filings? 990bench is an agent harness over
+1.85 million real Form 990-series returns. The agent sees returns only as page images, its answers
+are graded against values computed from the IRS XML by two independent code routes, and a small
+reliability study records what held up and what did not. The short answer: a cheap current model
+reads nearly every value correctly and still delivers a fully correct packet only half the time.
 
-This is not a leaderboard. The study ran one cheap model across settings, one weak model at one
-setting, and no strong model, so read the numbers as findings about failure modes, not rankings.
+This is not a leaderboard. The study ran one cheap model across settings (four runs each), one weak
+model at one setting, and no strong model, so read the numbers as findings about failure modes, not
+rankings.
 
 ## Findings
 
@@ -13,7 +16,8 @@ Full write-up with tables, intervals and limitations: [docs/report.md](docs/repo
 
 1. **Values right, packets wrong.** DeepSeek v4.1 Flash read at least 98.3% of graded values
    correctly in every run that finished, but only 16 of 32 due-diligence packets were fully
-   correct. Rare per-value errors compound over 60–240 values per packet.
+   correct. Seven failed on a single wrong value out of 60 to 240; nine ran out of token budget
+   before submitting.
 2. **One undefined term cost a quarter of the outcome.** Asked for "tax year 2024", the model
    picked the wrong year's return for every organization with a non-December fiscal year in two of
    four runs (10 wrong returns). One sentence defining the term removed all of them.
@@ -25,6 +29,8 @@ Full write-up with tables, intervals and limitations: [docs/report.md](docs/repo
 4. **Bad scans cost tokens before accuracy.** On coarse 1-bit pages the model never submitted a
    wrong value; it ran out of token budget in all four runs, re-reading pages.
 
+![Share of fully correct packets by setting, four runs each, with 95% Wilson intervals](docs/study-pass-rate.png)
+
 ## How it works
 
 An agent gets an analyst's request, for example: for these 10 grant applicants (name, city and
@@ -33,21 +39,60 @@ compensation and whether Schedule L reports insider transactions, from each tax-
 It works in a network-less Docker sandbox with the IRS index files and Business Master File as
 CSVs. Returns exist only as page images, rendered from the IRS XML with the IRS's own display
 stylesheets; the agent opens them with `open_return` (table of contents) and `view_page`. The
-answer is a JSON file that passes only if every value is right.
+answer is a JSON file that passes only if every value is right: 6 values per applicant, 5 to 40
+applicants.
 
 Why the answers can be trusted:
 
-- Answers are computed from the XML, then recomputed by a second route (the IRS index and direct
-  XPath) that must agree.
-- Every graded value is confirmed to be printed on the rendered pages; the IRS stylesheets drop
-  some data, so this is checked, not assumed.
+- Reference answers come from a catalog and fact tables parsed out of the XML (`corpus`, `facts`).
+  A second route (`crosscheck`) finds each return through the IRS index CSVs and reads every value
+  from the XML with its own XPaths. An assignment is kept only if the two agree.
+- Every graded value is confirmed to be printed on the rendered pages (`visibility`); the IRS
+  stylesheets drop some data, so this is checked, not assumed.
 - Generators pick only unambiguous cases: identities unique by name, city and state across all
   returns and the Business Master File; one original return for the year; no values on a rounding
   boundary. Difficulty is designed (non-December fiscal years, dense tables), never selected by
   which items a model fails.
 - Every failure in the study was traced to its cause by comparing the submitted value with the return.
 
+## Running
+
+The tests need no IRS data, Docker or API key: `uv sync && uv run pytest` checks the grader, runs
+both ground-truth routes on a small synthetic corpus, and checks the committed data and intervals.
+`data/` holds the run plan, the 24 validated study assignments with reference answers, the 401
+planned reading-test values, and the earlier rounds' assignments. Per-run trajectories and graded
+answers stay in `runs/`, which is not committed, so the result tables in `docs/` cannot be
+regenerated from a clone alone.
+
+The full pipeline needs Docker, `uv`, about 15 GB of disk, and an Ollama cloud key in `OLLAMA_API_KEY`:
+
+```sh
+uv run python -m bench990.fetch                                  # IRS XML batches, indexes, BMF
+uv run python -c "from bench990 import corpus, fetch; corpus.build(fetch.batches([2024, 2025, 2026]))"
+uv run python -m bench990.facts
+uv run playwright install chromium
+docker build -t bench990-sandbox sandbox
+
+uv run python -m bench990.study plan      # optional: replaces data/study/ with newly validated assignments
+uv run python -m bench990.study run --model ollama/deepseek-v4.1-flash:1017
+uv run python -m bench990.analysis        # docs/study-results.md and chart
+uv run python -m bench990.probes build    # optional: replaces data/probes/
+uv run python -m bench990.probes run --model ollama/deepseek-v4.1-flash:1017
+uv run python -m bench990.probes report   # docs/probe-results.md
+```
+
+Runs stopped by the provider (quota or server errors) are excluded from scores and resumable.
+
+## Limitations
+
+- Four runs per setting: a 95% interval on a pass rate spans about 70 points, so trends across
+  horizon length and trap share are not resolved.
+- The token budget is part of the task and ended 9 of the 32 runs.
+- One assignment family; the other four were tried only in single runs ([appendix](docs/appendix.md)).
+
 ## Layout
+
+Modules are in `src/bench990/`; `sandbox/` has the Dockerfile and the data notes the agent reads.
 
 | Module | Role |
 | --- | --- |
@@ -57,25 +102,6 @@ Why the answers can be trusted:
 | `sandbox`, `agent`, `run` | Docker workstation, tool loop (OpenAI-compatible), runner |
 | `study`, `analysis` | Reliability study dials, runs, intervals and failure taxonomy |
 | `probes` | The single-value reading test |
-
-## Running
-
-Requires Docker, `uv`, about 15 GB of disk, and an Ollama cloud key in `OLLAMA_API_KEY`.
-
-```sh
-uv run python -m bench990.fetch                                  # IRS XML batches, indexes, BMF
-uv run python -c "from bench990 import corpus, fetch; corpus.build(fetch.batches([2024, 2025, 2026]))"
-uv run python -m bench990.facts
-uv run playwright install chromium
-docker build -t bench990-sandbox sandbox
-
-uv run python -m bench990.study plan                             # validated study assignments
-uv run python -m bench990.study run --model ollama/deepseek-v4.1-flash:1017
-uv run python -m bench990.analysis                               # docs/study-results.md and chart
-uv run python -m bench990.probes build && uv run python -m bench990.probes run --model ollama/deepseek-v4.1-flash:1017
-```
-
-Runs stopped by the provider (quota or server errors) are excluded from scores and resumable.
 
 ## Documents
 

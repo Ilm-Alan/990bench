@@ -26,8 +26,9 @@ import random
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+from math import comb
 
+import httpx
 import pypdfium2 as pdfium
 
 from . import assignments as A
@@ -147,7 +148,7 @@ def image(p: dict[str, object], condition: str) -> bytes:
     return buf.getvalue()
 
 
-def ask(client, model: str, p: dict[str, object], condition: str) -> dict[str, object]:
+def ask(client: httpx.Client, model: str, p: dict[str, object], condition: str) -> dict[str, object]:
     what = "a strip cut from one page" if condition == "strip300" else "one page"
     content = [{"type": "text", "text": QUESTION.format(what=what, key=p["key"])},
                {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(image(p, condition)).decode()}}]
@@ -195,8 +196,6 @@ def run(model: str, parallel: int) -> None:
 
 def mcnemar(b: int, c: int) -> float:
     """Exact two-sided McNemar p-value for b and c discordant pairs."""
-    from math import comb
-
     n, k = b + c, min(b, c)
     if n == 0:
         return 1.0
@@ -252,6 +251,8 @@ def main() -> None:
     elif args.cmd == "run":
         run(args.model, args.parallel)
     else:
+        if not any(RESULTS.glob("*/results.jsonl")):
+            raise SystemExit(f"no probe results under {RESULTS.relative_to(corpus.ROOT)}/; docs left unchanged")
         text = report()
         (corpus.ROOT / "docs" / "probe-results.md").write_text(text)
         print(text)

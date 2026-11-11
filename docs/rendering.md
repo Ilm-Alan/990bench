@@ -23,7 +23,7 @@ render ran while the machine had load average ~25–35 from other jobs.
 
 - **URL pattern, decoded.**
   - The pattern is `https://apps.irs.gov/pub/epostcard/cor/<EIN>_<TAX_PERIOD>_<RETURN_TYPE>_<YYYYMMDD><RETURN_ID>.pdf`.
-  - Calibration: the prior-art sample `371589907_202012_990_2021052118162093.pdf` matches the `index_2021.csv` row `18162093,EFILE,371589907,202012,5/21/2021 7:30:52 AM,…,990,93493103007851,202101039349300785`.
+  - Calibration: the sample in [prior-art.md](prior-art.md), `371589907_202012_990_2021052118162093.pdf`, matches the `index_2021.csv` row `18162093,EFILE,371589907,202012,5/21/2021 7:30:52 AM,…,990,93493103007851,202101039349300785`.
   - In that row, the `RETURN_ID` is `18162093` and the date prefix equals `SUB_DATE` (2021-05-21).
 - **Downloading a known URL works with plain `curl`.** It returns HTTP 200 and `application/pdf`. A missing file returns a 302 redirect to `irs.gov/404`.
 
@@ -41,7 +41,7 @@ render ran while the machine had load average ~25–35 from other jobs.
   - In `index_2024/2025/2026.csv`, `SUB_DATE` holds only the year (for example `2025`).
   - `RETURN_ID` is blank for 38% / 45% / 48% of rows (449,214 of 728,719; 411,950 of 748,906; 227,026 of 436,239).
   - The DLN's Julian date does not equal the URL date. In the sample, the DLN gives day 103 (2021-04-13); the URL date is 2021-05-21.
-- **Brute force: HEAD one URL per candidate day**, counting from the XML `ReturnTs` date (scripts were throwaway, run from `/tmp`).
+- **Brute force: HEAD one URL per candidate day**, counting from the XML `ReturnTs` date (one-off scripts, not in the repository).
   - Akamai sometimes answers a burst with 403. Those requests have to be retried, so a 403 does not mean "exists".
 
   | object_id | form | ReturnTs | result (URL date, offset) |
@@ -67,7 +67,7 @@ render ran while the machine had load average ~25–35 from other jobs.
   - Producer is `GeneratePDFs.exe`, with 1-bit CCITT images at 300 dpi and no text layer.
   - Each page is cropped to its content: 539–541 pt wide and 729–852 pt tall. One Form 990 Part VIII page was 13.25 in tall.
   - Page counts: 17 (2023 990-EZ), 34 (2023 990), 23 (2024 990-EZ).
-  - Their header and layout match the MeF stylesheet output. This confirms the prior-art inference that TEOS images are renders of these stylesheets.
+  - Their header and layout match the MeF stylesheet output. This confirms the inference in prior-art.md that TEOS images are renders of these stylesheets.
 
 ## Route 2 (chosen): official MeF stylesheets → HTML → Chromium → PDF/PNG
 
@@ -116,11 +116,11 @@ uv run python -c "from pathlib import Path; from bench990.render import render; 
 
 - `render(object_id, out_dir, dpi=150) -> list[Path]` writes `<out_dir>/<object_id>.pdf` and `<object_id>_pNNN.png`, then returns the PNG paths.
 - `documents(object_id)` returns the per-document HTML. It is useful for text checks.
-- **Dependencies added:** `playwright` (Chromium via `uv run playwright install chromium`), `pypdfium2` and `pillow`.
+- **Dependencies:** `playwright` (Chromium via `uv run playwright install chromium`), `pypdfium2` and `pillow`.
 
 ### Verification
 
-- **Test script.** The checks were run with a throwaway script, not committed. For each return it:
+- **Test script.** The checks below were run with a one-off script that is not in the repository. For each return it:
   - renders the return;
   - checks named XML values in the PDF text layer (`get_text_bounded`) and in the HTML;
   - computes recall over every `*Amt` / `*Nm` / `BusinessNameLine1Txt` leaf. Amounts are formatted with thousands separators, as printed.
@@ -198,7 +198,7 @@ All of these are in `render.py`:
   - In McLaren's TY2022 Schedule R, Part II has 47 rows, so the rows move to the Additional Data table. That table prints `BusinessNameLine2Txt` but never `BusinessNameLine1Txt`, so 24 of 381 names never appear: not in the HTML and not on the page.
   - The TY2023 and TY2024 `IRS990ScheduleR.xsl` have the same template structure, so the bug probably persists `[INFERENCE from matching reference counts]`.
   - TEOS images presumably share the bug `[INFERENCE]`.
-  - **For benchmark questions in document mode, use only fields whose value appears in `documents()` HTML.** Our leaf-recall check does this filtering.
+  - **For benchmark questions in document mode, use only fields whose value is actually printed.** `visibility.py` enforces this for every assignment: each value an answer depends on must appear in the text layer of the rendered PDF.
 - **Look and colour.**
   - Output is grayscale with anti-aliasing and vector fonts; TEOS is 1-bit at 300 dpi.
   - The stylesheets' gold "Additional Data" title bar prints as light gray.

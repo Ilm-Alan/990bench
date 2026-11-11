@@ -93,11 +93,6 @@ def year_returns(year: int) -> pd.DataFrame:
     return sole.set_index("ein", drop=False)
 
 
-@cache
-def collided_names() -> frozenset[str]:
-    return frozenset(filings().groupby("name").ein.nunique().loc[lambda s: s > 1].index)
-
-
 def _who(row: pd.Series) -> str:
     return f"{row['name']} ({str(row['city']).title()}, {row['state']})"
 

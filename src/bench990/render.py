@@ -34,7 +34,7 @@ import pypdfium2 as pdfium
 from lxml import etree
 from playwright.sync_api import Route, sync_playwright
 
-from bench990 import corpus
+from . import corpus
 
 log = logging.getLogger(__name__)
 

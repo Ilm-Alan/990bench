@@ -1,15 +1,18 @@
 # How reliable are AI agents at nonprofit due diligence from IRS filings?
 
-A study with 990bench, October 2026. All numbers below come from runs in this repository; the
-per-run trajectories are kept under `runs/` (not committed) and summarized in
-[study-results.md](study-results.md).
+A study with 990bench, October 2026. All numbers below come from runs made with this repository's
+harness. The per-run trajectories are kept under `runs/` (not committed); the tables are the output
+of the analysis code in [study-results.md](study-results.md) and
+[probe-results.md](probe-results.md), with settings and models given readable names.
 
 ## Summary
 
 - **Single values are nearly always right; whole deliverables often are not.** A cheap current
   model (DeepSeek v4.1 Flash) read at least 98.3% of graded values correctly in every run that
-  finished, yet delivered a fully correct due-diligence packet in only 16 of 32 runs. One wrong
-  number in 60 or 240 is enough to fail a packet, and that is the standard a real analyst is held to.
+  finished, yet delivered a fully correct due-diligence packet in only 16 of 32 runs. Of the other
+  16, 7 submitted a packet with exactly one wrong value and 9 hit the token budget before
+  submitting. One wrong number in 60 or 240 is enough to fail a packet, and that is the standard a
+  real analyst is held to.
 - **The errors are specific, rare in isolation, and not about resolution.** Finished-run errors
   were digit misreads in dense tables (a 3 read as 5, a 9 as 5), the prior-year column read instead
   of the current year, and one Schedule L judgment. Asked to read 193 single values from dense
@@ -76,7 +79,7 @@ the median passing baseline run). Runs stopped by the provider's quota were excl
 
 ![Pass rate by dial](study-pass-rate.png)
 
-| Model | Setting | Runs | Passed | Wrong values | Stopped by budget | Pass rate (95% CI) | Value accuracy, finished runs | Mean tool calls | Mean prompt tokens |
+| Model | Setting | Runs | Passed | Submitted with a wrong value | Stopped by budget | Pass rate (95% CI) | Value accuracy, finished runs | Mean tool calls | Mean prompt tokens |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | DeepSeek v4.1 Flash | 10 applicants, 50% traps, clean (baseline) | 4 | 3 | 1 | 0 | 75% (30–95%) | 99.6% | 106 | 2.36M |
 | DeepSeek v4.1 Flash | 5 applicants | 4 | 2 | 0 | 2 | 50% (15–85%) | 100.0% | 82 | 1.57M |
@@ -90,6 +93,9 @@ the median passing baseline run). Runs stopped by the provider's quota were excl
 
 ### What went wrong in finished runs
 
+One label per wrong applicant. Each of the 7 DeepSeek packets submitted with an error had exactly
+one wrong value; the 2 Gemma packets had 19 wrong applicants between them.
+
 | Model | Error | Wrong applicants |
 | --- | --- | --- |
 | DeepSeek v4.1 Flash | Part VII compensation, digits misread (116,723 → 116,725; 28,523 → 28,525; 305,229 → 305,225) | 3 |
@@ -97,7 +103,7 @@ the median passing baseline run). Runs stopped by the provider's quota were excl
 | DeepSeek v4.1 Flash | Total revenue, digits misread (21,149,623 → 21,149,633) | 1 |
 | DeepSeek v4.1 Flash | Schedule L transaction missed | 1 |
 | Gemma 4 31B | Total revenue wrong (wrong line or value) | 14 |
-| Gemma 4 31B | Other fields | 5 |
+| Gemma 4 31B | Other: program share (2), wrong return (1), Part VII compensation (1), total revenue digits (1) | 5 |
 
 The first misread, as the model saw it ([crop](render-samples/misread-116723.png)): the value is
 printed clearly; the model reported 116,725, and reported the same number when the page was sent
@@ -111,7 +117,7 @@ row should fix them. Before building a zoom tool, I tested that directly: values
 (Part VII compensation, Schedule J base pay, Schedule I grants), each shown three ways, the model
 asked to transcribe every number in the named row ([probe-results.md](probe-results.md)).
 
-| How the value was shown (same 193 values) | Read correctly (95% CI) | Prompt tokens per image |
+| How the value was shown (same 193 values) | Read correctly (95% CI) | Mean prompt tokens per call |
 | --- | --- | --- |
 | Full page, 150 dpi | 191/193, 99.0% (96.3–99.7%) | 1,075 |
 | Full page, 300 dpi | 193/193, 100.0% (98.0–100.0%) | 1,075 |
@@ -144,9 +150,14 @@ Form 990, which covers a tax year beginning in 2024":
 - One assignment family. The repository also contains follow-the-money, compensation-ranking,
   grant-ledger and Schedule J transcription assignments, which the cheap model passed in single
   runs (see the [appendix](appendix.md)).
+- The trajectories and graded answers behind these tables are not committed, and the generator now
+  always includes the sentence defining "tax year", so the undefined-prompt runs of the ablation
+  cannot be regenerated without removing it.
 
 ## Reproduce
 
 See the [README](../README.md): fetch the IRS data, build the catalog and fact tables, then
-`python -m bench990.study plan`, `python -m bench990.study run --model …`, and
-`python -m bench990.analysis`.
+`python -m bench990.study run --model …` and `python -m bench990.analysis` for the study, and
+`python -m bench990.probes run --model …` and `python -m bench990.probes report` for the reading
+test. `study plan` and `probes build` regenerate the committed assignments and probe values from
+the downloaded IRS data.
